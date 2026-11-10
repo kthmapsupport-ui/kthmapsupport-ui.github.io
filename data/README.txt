@@ -143,6 +143,12 @@ Sources:
 
 Record: [lat, lng, kind (0 gym, 1 outdoor gym), name, access (0 unknown, 1 free, 2 paid, 3 members), website, source (0 osm, 1 kth)]
 
+WHAT IS IN THE FILE (10 Nov 2026): only places CONFIRMED against a page of their operator or owner that is current (CONFIRMED below,
+with the evidence of each; the list of what was dropped and why is docs/GYMS_VERIFICATION.md). OpenStreetMap is only used to FIND
+candidates: the ones that are not confirmed are printed and are NOT in the app (gyms close and move: of the 53 places this script
+once took from OpenStreetMap, 20 could not be confirmed, 5 of them are gone for sure, FLX Fitness among them). To add a place,
+check it on its own page and add a line to CONFIRMED.
+
 Usage: python tools/build_gyms.py
 
 [build_scooter_parking.py]
