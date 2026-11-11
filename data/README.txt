@@ -1,5 +1,5 @@
-KTH Map: data derived from OpenStreetMap
-========================================
+Campus Map: data derived from OpenStreetMap
+============================================
 
 Contains information from OpenStreetMap, which is made available here under the Open Database
 License (ODbL) 1.0: https://opendatacommons.org/licenses/odbl/1-0/
@@ -9,7 +9,7 @@ Some buildings of the street maps were added from Overture Maps (https://overtur
 under the ODbL; its contributors include Esri Community Maps contributors (CC BY 4.0), Microsoft (ODbL) and Google
 (CC BY 4.0).
 
-What this is: the files below are the derived databases that the KTH Map app carries inside it (map shapes,
+What this is: the files below are the derived databases that the Campus Map app carries inside it (map shapes,
 walking network, entrances, places, addresses). You may copy, distribute and adapt them under the ODbL: credit
 OpenStreetMap, say that you changed them if you did, and offer what you publish from them under the same licence.
 
@@ -35,6 +35,7 @@ campus.json: Places near the campuses (food, shops, services...)
 addresses.json: Address points (street and house number)
 gyms.json: Gyms and outdoor gyms near the campuses (OpenStreetMap places plus facts named in the file)
 scooter_parking.json: Scooter parking places (open data of Stockholm city, OpenStreetMap; sources named in the file)
+access.json: Benches, accessible toilets, parking for disabled people, lifts and step-free entrances, and the wheelchair tags of places
 
 FORMAT NOTES (from the scripts that build the files)
 ---------------------------------------------------
@@ -98,8 +99,9 @@ server, works offline). Data (c) OpenStreetMap contributors, ODbL: keep the attr
 File format (compact, integers):
   bbox   [south, west, north, east] in degrees
   nodes  flat list [lat1e6, lng1e6, ...]
-  edges  flat list [a, b, lengthDm, steps, ...]   a/b = node indexes, length in decimetres,
-                                                  steps = 1 for stairs
+  edges  flat list [a, b, lengthDm, flags, ...]   a/b = node indexes, length in decimetres,
+                                                  flags = 1 for stairs, else the surface, wheelchair, incline and trail bits
+                                                  of tools/walk_access.py
 
 [build_osm_doors.py]
 The entrances of every building of every campus: assets/data/doors.json.
@@ -165,3 +167,21 @@ Sources (all free to reuse):
 
 Only spots near a campus are kept. Usage:
     python tools/build_scooter_parking.py [--city-file esp.json]   (without it the city layer is downloaded)
+
+[build_access.py]
+Builds assets/data/access.json: what OpenStreetMap knows that helps people with reduced mobility, in the boxes of the campuses.
+
+    python tools/build_access.py            # fetch (cached in tools/cache/access_<id>.json) and write the file
+    python tools/build_access.py --refetch  # ask Overpass again
+
+What it keeps (one Overpass query per campus box, free):
+  spots   [[lat, lng, kind, status, name], ...]  kind:
+            bench               amenity=bench: a place to rest
+            accessible_toilets  amenity=toilets with wheelchair=yes|designated or toilets:wheelchair=yes
+            disabled_parking    parking for disabled people (capacity:disabled, parking_space=disabled)
+            elevator            highway=elevator (a lift outdoors, at a station or a footbridge)
+            accessible_entrance an entrance or a door with wheelchair=yes|designated, or an automatic door
+          status  the wheelchair tag of any other place or building that has one: {"node/123": "yes" | "limited" | "no"}, so that
+                  a place the app already shows can say whether it is accessible.
+The file says what the data says: a place with no tag is NOT in `status` (unknown is not the same as not accessible).
+Data (c) OpenStreetMap contributors, ODbL: the file is offered in the open data zip (tools/pack_osm_data.py).
