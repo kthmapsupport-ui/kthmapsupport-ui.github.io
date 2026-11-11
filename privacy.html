@@ -15,7 +15,7 @@
 </head>
 <body>
 <h1>KTH Map privacy policy</h1>
-<p>Last updated: 9 November 2026. KTH Map is an independent app for university students. It is not affiliated with, endorsed by or
+<p>Last updated: 11 November 2026. KTH Map is an independent app for university students. It is not affiliated with, endorsed by or
 sponsored by KTH Royal Institute of Technology or SL.</p>
 
 <h2>1. Who is responsible</h2>
@@ -23,7 +23,8 @@ sponsored by KTH Royal Institute of Technology or SL.</p>
 
 <h2>2. Short version</h2>
 <p>The app has no account, no advertising, no analytics and no server of ours. Your timetable, settings, home point and activities stay on your
-phone. We do not receive or store any of them. To do its job the app sends some requests straight from your phone to the services listed below.</p>
+phone. We do not receive or store any of them. To do its job the app sends some requests straight from your phone to the services listed below. The street map
+makes no requests at all; <strong>the optional satellite view</strong> (off until you switch it on) is made by Google's Maps SDK and does contact Google, see below.</p>
 
 <h2>3. What the app processes and where it goes</h2>
 <table>
@@ -31,11 +32,17 @@ phone. We do not receive or store any of them. To do its job the app sends some 
 <tr><td>Timetable link (a private link) and your events</td><td>On your phone</td><td>The site named in the link (for KTH students: KTH Social), which you choose to contact</td><td>Show your agenda and alerts</td></tr>
 <tr><td>Precise location (only while the app is in use, only if you allow it)</td><td>Not stored</td><td>SL Journey Planner (start and destination coordinates, time) when it plans a "leave now" alert. Walking routes are computed on the phone</td><td>Nearby rooms, routes, leave-now alerts</td></tr>
 <tr><td>Home point you set (coordinates and a label)</td><td>On your phone</td><td>Its coordinates go to SL Journey Planner when planning a trip</td><td>Leave-now alerts</td></tr>
-<tr><td>Map</td><td>Drawn on your phone from map data that is inside the app (&copy; OpenStreetMap contributors)</td><td>Nothing: the app makes no map requests</td><td>Show the map</td></tr>
+<tr><td>Map</td><td>Drawn on your phone from map data that is inside the app (&copy; OpenStreetMap contributors)</td><td>Nothing: the street map makes no map requests</td><td>Show the map</td></tr>
+<tr><td>Satellite view (optional)</td><td>Not stored by us</td><td>Google (Google Maps SDK): see the next paragraph</td><td>Show the aerial photo and draw the app's names, pins, route and floor plan on it</td></tr>
 <tr><td>Room availability (free computers)</td><td>Not stored</td><td>KTH's public room pages, for the computer rooms you look at</td><td>Show free computers in a room</td></tr>
 <tr><td>Extra calendars and your own activities</td><td>On your phone</td><td>Extra-calendar links are requested from their own sites</td><td>Show them in the agenda</td></tr>
 <tr><td>Subscription</td><td>Handled by Google Play or the Apple App Store</td><td>We never see your payment details</td><td>Free trial and subscription</td></tr>
 </table>
+<p><strong>Satellite view (Google Maps).</strong> Only while you use the satellite view, Google's Maps SDK, inside the app, asks Google for the photo of the area you are looking at and
+Google receives, according to its documentation of the SDK: your phone's IP address, the model and system version of the phone and the version of the SDK, crash reports of the SDK, a pseudonymous
+identifier of the SDK (to count daily users), and which part of the map you move and zoom to. If you allowed location, the blue dot that shows where you are on that map is drawn by the SDK on your phone.
+Google acts as an independent controller of this data under <a href="https://policies.google.com/privacy">its own privacy policy</a>; we receive none of it. The app does not give Google your timetable, your home point or your activities.
+If you do not switch the satellite view on, nothing is sent to Google. The legal notices of the SDK are in the app (Settings, About).</p>
 <p>Every web request exposes your phone's IP address to the site that receives it, as with any app. Those sites have their own privacy policies.
 The app does not request background location.</p>
 
