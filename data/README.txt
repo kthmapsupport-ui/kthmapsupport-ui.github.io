@@ -10,20 +10,22 @@ under the ODbL; its contributors include Esri Community Maps contributors (CC BY
 (CC BY 4.0).
 
 What this is: the files below are the derived databases that the Campus Map app carries inside it (map shapes,
-walking network, entrances, places, addresses). You may copy, distribute and adapt them under the ODbL: credit
+walking network, bicycle network, entrances, places, addresses). You may copy, distribute and adapt them under the ODbL: credit
 OpenStreetMap, say that you changed them if you did, and offer what you publish from them under the same licence.
 
 What this is NOT: the rooms, floor plans and the names taken from KTH Places belong to KTH and are not part of this
 offer. In gyms.json and scooter_parking.json the field "sources" says where each kind of entry comes from; only
 the OpenStreetMap part is offered under the ODbL here, the other sources keep their own terms.
 
-Coordinates are integers (degrees x 1,000,000) in most files. The format of each file is described below.
+Coordinates are integers (degrees x 1,000,000) in most files, and in bike_graph.bin (a binary file: the format is the
+docstring of bike_graph_codec.py below, which has a reader and a writer). The format of each file is described below.
 Questions: kthmap.support@gmail.com
 
 FILES
 -----
 vector_map.json: Street map of the main campus: buildings, roads, water, green
 vector_region.json: Coarse street map of greater Stockholm around the main campus
+vector_outer.json: Coarser street map of the ring around greater Stockholm, so that every campus has map all around it
 vector_flemingsberg.json: Street map of the Flemingsberg campus
 vector_haninge.json: Street map of the Haninge campus
 vector_kista.json: Street map of the Kista campus
@@ -36,6 +38,8 @@ addresses.json: Address points (street and house number)
 gyms.json: Gyms and outdoor gyms near the campuses (OpenStreetMap places plus facts named in the file)
 scooter_parking.json: Scooter parking places (open data of Stockholm city, OpenStreetMap; sources named in the file)
 access.json: Benches, accessible toilets, parking for disabled people, lifts and step-free entrances, and the wheelchair tags of places
+bike_parking.json: Places to leave a bike, an e-bike or an e-scooter near the campuses, with what OpenStreetMap says about each one (roof, lockers, how many bikes, a charger for e-bikes, a fee, who may use it)
+bike_graph.bin: Bicycle network of greater Stockholm, Sodertalje and Haninge: cycle ways, paths, streets and what a rider can do on them, as nodes and edges (binary)
 
 FORMAT NOTES (from the scripts that build the files)
 ---------------------------------------------------
@@ -77,6 +81,17 @@ Format (integers are degrees * q):
   roads         [[class, lat, lng, ...], ...]   class 0 major road, 1 street
   rail          [[lat, lng, ...], ...]
 
+[build_vector_outer.py]
+Build the OUTER street map: the coarse ring around greater Stockholm that makes the covered area reach well past every campus.
+
+    tools/.venv/Scripts/python tools/fetch_outer_raw.py     # once: the raw OpenStreetMap shapes (cached in tools/cache/outer)
+    tools/.venv/Scripts/python tools/build_vector_outer.py
+
+Writes assets/data/vector_outer.json, in the format of vector_region.json (see build_vector_region.py). It covers OUT (outer_geom.py)
+except the region (vector_region.json draws that) and the detailed map of every campus outside the region (their own files draw
+them). Around those campuses (MID_METERS) it is as fine as the region; further out it is coarse: main roads, the railways, and the
+water and green areas that are big enough to be seen on a map of the whole area.  (c) OpenStreetMap contributors, ODbL.
+
 [build_campuses.py]
 Detailed maps, walking network and places for the campuses outside Valhallavägen.
 
@@ -112,7 +127,8 @@ Sources, for each building drawn on the map (ways, buildings with a courtyard an
   1. the entrance nodes of OpenStreetMap (entrance=main|yes|home|residential|staircase|shop|service|garage...)
      within 6 m of its outline: real doors;
   2. a building with no entrance in OpenStreetMap gets the most likely one: the point of its outline nearest to
-     the walking network (a path or a street), marked as a guess.
+     the walking network (a path or a street), marked as a guess; a point that lies inside another building (by more than
+     INSIDE_OTHER_M: a building drawn inside the outline of a bigger one) is not taken while a better one is left.
 Entrances that are private (access=private|no), emergency exits and plain exits are left out.
 
 File: {"q": 1000000, "b": [[lat, lng, areaM2, kth, ring, doors], ...]} in 1/q degrees; ring = flat [lat, lng, ...];
@@ -165,8 +181,10 @@ Sources (all free to reuse):
         (about 15 m of error), so their positions are approximate.
   osm   OpenStreetMap, amenity=scooter_parking / kick-scooter_parking (ODbL, (c) OpenStreetMap contributors).
 
-Only spots near a campus are kept. Usage:
+Only spots near a campus are kept. Two places closer than SAME_PLACE_M with the same address are one place (the city's layer has
+two or three points for one marked area): the newest month is kept. Usage:
     python tools/build_scooter_parking.py [--city-file esp.json]   (without it the city layer is downloaded)
+    python tools/build_scooter_parking.py --merge-only             (no download: the same-place merge on the file as it is)
 
 [build_access.py]
 Builds assets/data/access.json: what OpenStreetMap knows that helps people with reduced mobility, in the boxes of the campuses.
@@ -185,3 +203,127 @@ What it keeps (one Overpass query per campus box, free):
                   a place the app already shows can say whether it is accessible.
 The file says what the data says: a place with no tag is NOT in `status` (unknown is not the same as not accessible).
 Data (c) OpenStreetMap contributors, ODbL: the file is offered in the open data zip (tools/pack_osm_data.py).
+
+[build_bike_parking.py]
+Builds assets/data/bike_parking.json: where a bike, an e-bike or an e-scooter can be left near the KTH campuses, with what
+OpenStreetMap says about each place (a roof, lockers, how many bikes, a charger for e-bikes, a fee, who may use it).
+
+Source: OpenStreetMap, amenity=bicycle_parking (nodes, and ways and relations as their centre) and the charging stations for
+bikes (amenity=charging_station with bicycle=yes). (c) OpenStreetMap contributors, Open Database Licence (ODbL) 1.0. The
+places for e-scooters are not here: they stay in assets/data/scooter_parking.json (tools/build_scooter_parking.py).
+
+Area: every campus box of assets/data/campuses.json plus 800 m on every side (a campus inside another one, AlbaNova, is in the
+box of the other). One Overpass query per box, one at a time, with a pause between them and growing waits when the server is
+busy (it often answers 502): `--max-wait-minutes` (default 60) is how long one query is retried before giving up on it. If a
+box cannot be had, `--cache-dir` (a folder of earlier Overpass answers, any file with a list of elements or {"elements": [...]})
+and, last, the plain places of assets/data/campus.json (position only, no tags) are used for that box, and the file says so in
+"sources" and "fallback". User-Agent: campusmap-build/0.1. Usage:
+
+    python tools/build_bike_parking.py [--out FILE] [--raw-dir DIR] [--max-wait-minutes N] [--cache-dir DIR] [--self-test]
+
+THE FORMAT of assets/data/bike_parking.json (version 1):
+
+    {"v": 1, "built": "YYYY-MM-DD", "sources": {...}, "fallback": [...],
+     "spots": [[lat, lng, kind, flags, capacity, "n123", "label"], ...],
+     "private": ["n456", ...]}
+
+  lat, lng   degrees, six decimals (about 0.1 m)
+  kind       the index of ParkingKind (lib/services/parking.dart): 0 a rack in the open (stands, wall loops, bollards...),
+             1 a rack under a roof (a shelter: covered=yes, bicycle_parking=shed), 2 lockers (boxes), 3 inside a building or
+             underground (bicycle_parking=building, indoor=yes, a bike garage). The places marked for e-scooters are another file
+  flags      a sum of: 1 covered (under a roof, or inside), 2 secure (lockers, cameras, watched), 4 charging (a place to charge an
+             e-bike), 8 fee (paid), 16 restricted (customers, permit holders, residents: not a place for everybody), 32 roof known
+             (OpenStreetMap says yes or no about a roof: without it "not covered" only means "not known" and the app says nothing)
+  capacity   how many bikes, 0 when OpenStreetMap does not say
+  id         "n123" is node 123, "w456" way 456, "r789" relation 789 of OpenStreetMap (the app joins it to the same place of
+             campus.json, whose id is "node/123")
+  label      the name when the place has one that says more than "bicycle parking"; "" otherwise
+  private    the ids (as above) of the racks OpenStreetMap says are private: they are not in "spots", and the app removes a rack
+             with one of these ids from the plain racks of campus.json (which has them as racks like any other)
+
+What is left out: access=private (private for sure, unless bicycle=yes or designated says bikes are welcome; listed in "private"). What is kept and
+flagged 16: access=customers, permit, no, delivery, destination, residents, members, employees. Two places closer than 3 m are
+one place (the richer one stays, its flags and its largest capacity too). A charging station for bikes within 10 m of a rack is
+a charger of that rack (flag 4); alone it is a rack of its own.
+
+[bike_graph_codec.py]
+The file format of the bike ways bundled in the app (assets/data/bike_graph.bin): the reference encoder and decoder.
+
+The app reads it with lib/services/bikegraph.dart (BikeGraph.decode); both are tied to this file by the fixtures of test/fixtures
+(bike_graph_mini*.bin and .json, made by `python tools/bike_graph_codec.py --fixtures`). docs/RIDING_MODES.md has the meaning of every
+number. All integers are little endian; a "varint" is an unsigned LEB128; "zigzag" maps a signed integer n to (n << 1) ^ (n >> 63)
+and then writes it as a varint. Coordinates are integer micro-degrees (degrees times 1,000,000).
+
+    header   u32 magic 0x47424D43 ("CMBG" as bytes 43 4D 42 47) | u16 version = 1 | u16 flags (bit 0: every edge has a grade)
+             | u32 nodeCount | u32 edgeCount | u32 shapeCount | u16 boxCount | u16 reserved = 0
+             | boxCount x 4 x i32: south, west, north, east of each area the file covers
+    sections four of them, each a u32 byte length followed by that many bytes:
+      NODES      nodeCount x [zigzag dLat, zigzag dLng]            deltas from the previous node (the first from 0, 0)
+      NODEFLAGS  nodeCount x u8                                    bit 0 traffic lights, bit 1 marked crossing, bit 2 barrier
+      EDGES      edgeCount x [zigzag (a - previous a), zigzag (b - a), varint length in decimetres, u8 class, u8 attrs,
+                              (i8 grade, only when the header says so), varint shape points of this edge]
+      SHAPE      shapeCount x [zigzag dLat, zigzag dLng]           the points between the ends of each edge, in order, each as
+                                                                   the delta from the one before it (the first from node a)
+    attrs      bits 0-2 surface class, bits 3-4 direction (0 both ways, 1 only a to b, 2 only b to a), bit 5 lit, bits 6-7 zero.
+    class      0 cycleway, 1 shared path, 2 street with a bike lane or track, 3 quiet street, 4 street, 5 busy road,
+               6 main road, 7 push (walk with the machine by hand)
+    surface    0 unknown, 1 smooth, 2 paving stones or compacted, 3 gravel, 4 cobblestones, 5 unpaved, 6 and 7 not used
+    grade      percent of climb going from a to b (a descent is negative), clamped to -30..30; going from b to a it is the opposite
+
+[bike_classify.py]
+The rules of docs/RIDING_MODES.md, section 4.2, as pure functions: what a rider can do on an OpenStreetMap way or node.
+
+    classify_way(tags)  -> [Edge, ...]   the directed edges a way gives a bike, in the direction of the way (its first node to its last):
+                                         [] when a bike may not use it, one edge when both ways are alike, two when they differ
+                                         (a one-way street, a lane on one side only)
+    exclusion(tags)     -> str | None    why a bike may not use the way (None when it may)
+    node_flags(tags)    -> int           bit 0 traffic lights, bit 1 marked crossing, bit 2 barrier (the rider gets off)
+    surface_class(tags) -> int           0 unknown ... 5 unpaved, as the file
+
+An Edge is (cls, surf, dir, lit, incline): the class and surface numbers of tools/bike_graph_codec.py, dir BOTH / FORWARD (first node
+to last) / BACKWARD, lit a bool, incline the percent of climb going from the first node to the last when OpenStreetMap says it, else None.
+Nothing here reads a file or the network: the builder (build_bike_graph.py) calls these for every way and node, and
+test_bike_classify.py pins every rule.
+
+Where the spec leaves a gap this file decides, and says so next to the decision (the report lists them):
+  * a street with a lane on a road above tertiary (secondary, primary, trunk) is not class 2; a separated track is, a painted lane
+    takes the road one class down, a shared-lane marking changes nothing;
+  * a tertiary street with no speed given is class 4, a tertiary street at 30 or less too (not a quiet street);
+  * a cycle street (bicycle_road=yes, cyclestreet=yes) is class 2;
+  * a path or track that is only for people on foot (foot=designated, no word about bicycles) or where bicycles are "discouraged" is
+    class 7, like a footway;
+  * a primary or trunk road with 90 km/h or more and no word that bicycles may use it is not used at all (it is as good as a motorway).
+(c) OpenStreetMap contributors, ODbL.
+
+[build_bike_graph.py]
+Build the bike network of the app (assets/data/bike_graph.bin, format of tools/bike_graph_codec.py) from OpenStreetMap (ODbL).
+
+    tools/.venv/Scripts/python tools/fetch_bike_raw.py        # once: the raw data (cached in tools/cache/bike, resumable)
+    tools/.venv/Scripts/python tools/build_bike_graph.py      # writes assets/data/bike_graph.bin and prints the figures
+    tools/.venv/Scripts/python tools/bike_graph_check.py      # the validation of docs/RIDING_MODES.md section 4.6
+
+Sources: tools/cache/region_roads.json (the streets of greater Stockholm) and the files of fetch_bike_raw.py (cycleways, paths,
+footways, tracks, service roads; and every way of Sodertalje and Haninge), plus the nodes with tags (traffic lights, crossings,
+barriers). The rules of what a bike may do on a way are in bike_classify.py; the areas and the zones in bike_areas.py.
+
+What it does, in order:
+  1. every way is classified (bike_classify.classify_way); a way a bike may not use is left out; ways are cut at the edge of the areas
+  2. the graph is made of the OpenStreetMap nodes the ways SHARE (an intersection), the ends of ways and the nodes with a flag: a way is
+     cut there into units; nothing connects two ways that do not share a node, except the short gaps repaired in step 4
+  3. a stretch of a footway or a path that lies on a flight of steps (the steps drawn twice) is dropped; contraction: a node where exactly
+     two units of the same attributes meet, with no flag, is not a node (the shape keeps the geometry)
+  4. repairs of the data: a way that ends within a few metres of another way it was meant to join gets a link (a mapper's gap; a cycleway
+     that stops up to 12 m short, a shared path 8 m, gets a link to walk); never where steps are, across a building (campus maps) or a
+     railway; a loop is cut in two, two ways on the same nodes become one. With --near-links (not in the shipped file) also two nodes up
+     to 12 m apart, one of them on a cycle way and the other on a street or a cycle way, that no way of 150 m or less joins in both
+     directions (link_near_nodes)
+  5. components under 40 nodes are dropped unless a campus is in them
+  6. one-way pockets (a few ways a rider can enter and not leave, or the other way round) get the cheapest ways out and in as a second
+     edge of class 7 against the traffic, never on a busy or a main road, a bridge or a tunnel
+  7. size (4.3): when the file is over the limit, outside the zones of the campuses the unneeded service ways, tracks and pushed
+     footways are dropped, in this order, each step measured (then the unmarked paths, dead ends of pushed footways and a coarser
+     shape if it is still too big); nothing that connects two bike ways is dropped (a way goes only when its ends stay joined by other
+     ways that are not much longer)
+  8. nodes are ordered along a Hilbert curve (so the deltas of the file are small), shapes are simplified to 3 m, and the file is written
+
+The numbers are printed and kept in tools/cache/bike/build_report.json (docs/BIKE_GRAPH_REPORT.md has the last run).

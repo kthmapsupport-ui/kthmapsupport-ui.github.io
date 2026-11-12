@@ -18,7 +18,7 @@
 <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License (ODbL) 1.0</a>.
 &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>.</p>
 
-<p>The street map, the walking network, the entrances, the places and the addresses of Campus Map are drawn and computed on the phone from data files
+<p>The street map, the walking network, the bicycle network, the entrances, the places and the addresses of Campus Map are drawn and computed on the phone from data files
 that are derived from OpenStreetMap. This page offers those files to everyone, under the same licence, as the licence asks.</p>
 
 <h2>Download</h2>
@@ -26,6 +26,20 @@ that are derived from OpenStreetMap. This page offers those files to everyone, u
   <li><a href="data/campus-map-osm-data.zip">campus-map-osm-data.zip</a> (the data files and a README with the format of each file)</li>
   <li><a href="data/README.txt">README.txt</a> (the same text as inside the zip)</li>
 </ul>
+
+<h2>The bicycle network</h2>
+<p><code>bike_graph.bin</code> is the network the app uses to work out routes by bike, e-bike and e-scooter: the cycle ways, paths, footways,
+service roads and streets of greater Stockholm and of the surroundings of S&ouml;dert&auml;lje and Haninge, as nodes and edges. Every edge says what kind of way it is
+(cycle way, shared path, street with a lane, quiet street, street, busy road, main road, or a stretch where the rider walks with the machine), its surface,
+whether it is one way for bicycles, and whether it is lit; some nodes are traffic lights, crossings or barriers. It is a binary file made from OpenStreetMap
+by <code>build_bike_graph.py</code> with the rules of <code>bike_classify.py</code>; the README in the zip has the format (<code>bike_graph_codec.py</code>, which also holds a reader and a writer)
+and the rules.</p>
+
+<h2>The places to park a bike</h2>
+<p><code>bike_parking.json</code> lists the places where a bike, an e-bike or an e-scooter can be left near the campuses (bicycle parking and the charging stations
+for bikes of OpenStreetMap): the position, whether there is a roof, lockers or a charger, how many bikes fit, whether it is paid and whether it is for everybody.
+It was made by <code>build_bike_parking.py</code>, whose first lines describe the format; the places marked private in OpenStreetMap are only listed by their
+identifier, so that the app does not send anybody there.</p>
 
 <h2>What you may do</h2>
 <p>Copy, distribute and adapt these files under the ODbL: credit OpenStreetMap, say so if you changed them, and offer what you publish from them
